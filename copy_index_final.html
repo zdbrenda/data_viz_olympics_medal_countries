@@ -1,0 +1,364 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="http://d3js.org/d3.v3.min.js"></script>
+  
+  <script src="https://d3js.org/topojson.v2.min.js"></script>
+    <script src="/d3-geomap/vendor/d3.geomap.dependencies.min.js"></script>
+        <script src="/d3-geomap/js/d3.geomap.min.js"></script>
+    
+   
+    <style>
+        
+        /* css styling */
+        h2{
+            text-align: center;
+            
+        }
+        
+        
+      div.tooltip {   
+ 	position: absolute;           
+	text-align: center;           
+	width: 60px;                  
+	height: 50px;                 
+	padding: 2px;             
+	font: 15px sans-serif; 
+    font-style: italic;
+    font-weight: 500;   
+	background: lightsteelblue;   
+	border: 0px;      
+	border-radius: 8px;           
+	pointer-events: none;         
+}
+        
+        
+        div.years_buttons {
+          position:fixed;
+          top:10px;
+          left:0px;
+            
+        }
+        
+        div.years_buttons div{
+            
+            background-color: rgb(251, 201, 127);
+            padding:3px;
+            margin:7px;
+        }
+        
+        
+    </style>
+    <script type="text/javascript">  
+      function draw(geo_data) {
+        "use strict";
+       var margin = 75,
+            width = 1400 - margin,
+            height = 600 - margin;
+       d3.select('body')
+            .append('h2');  
+          
+          
+          //color domain for total number of medals
+       var color_domain = [10,50, 100, 300, 500, 1000, 2000,3000, 5000];
+                      
+    //color assignment for total number of medals
+       var color = d3.scale.threshold()
+       .domain(color_domain)
+       .range(["#F4F2F9","#DED7EF","#C2B8DD","#ADA1CE","#9989C1","#705DA3","#4F3B82","#321F60","#0C0321"]);
+          
+        var div=d3.select("body").append("div")
+          .attr("class","tooltip")
+          .style("opacity",0);
+
+          
+          
+        var svg = d3.select("body")
+            .append("svg")
+            .attr("width", width + margin)
+            .attr("height", height + margin)
+            .append('g')
+            .attr('class', 'map');
+          
+          
+          //projection defination
+        var projection = d3.geo.mercator()
+                               .scale(150)
+                               .translate( [width / 2, height / 1.5]);
+
+        var path = d3.geo.path().projection(projection);
+          
+          //add map
+
+        var map = svg.selectAll('path')
+                     .data(geo_data.features)
+                     .enter()
+                     .append('path')
+                     .attr('d', path);
+                     
+          
+        function plot_points(medals_by_country){
+              
+                   
+              //read in the json file that contain the data of annual medal info which was obtained by data wrangling in python 
+            
+            d3.json("new_medals_by_country_year.json",function(medals_by_country_year){
+                    
+                   var countries=[];
+              var medals={};
+              
+              
+              
+            for(var key in medals_by_country){
+                  
+                  if(medals_by_country[key]){
+                      countries.push(key);
+                      
+                  }
+              }
+              
+              
+              //color assignment for total number of medals
+            var color_assignments={};
+              
+            var len=medals.length;
+              
+            for(var country in medals_by_country)
+                  {    
+                      color_assignments[country]=color(medals_by_country[country]);
+                      
+                      
+                  } 
+                    
+               //Drawing choropleth for total number of medals
+            function display_total_medals(medal_total_data)
+              {svg.selectAll('path').style('fill',
+                                           function(d){
+                  
+                  var country,code;
+                  var color_picked;
+                  if(typeof d==='object') 
+                  {  
+                      country=d.properties.name;
+                      code=d.id;
+                       if (countries.indexOf(code)<0 &&countries.indexOf(country)<0){
+                      
+                     color_picked= "#969696";
+                  }
+                  
+                  else if(countries.indexOf(code)>=0) {
+                      
+                      
+                  color_picked=color_assignments[code];
+                      
+                  }
+                   else if (code=="USA") {
+                          color_picked= color_assignments[code];
+                      }
+                  }
+                  
+                  
+                  
+                  
+                 
+                  console.log(d+" "+color_picked);
+                  return color_picked;
+                  })
+              .style('stroke', '#525252')
+              .style('stroke-width', 0.8)
+              .on("mouseover",mouseOver)
+              .on("mouseout",function(){
+                  
+                  //mouseout interaction
+                  d3.select(this)
+                  .transition().duration(300)
+                  .style("opacity",0.8);
+                  div.transition().duration(300)
+                  .style("opacity",0);
+              });
+              
+              function mouseOver(c){
+                  
+                //mouseover interaction
+                  div.transition()
+                  .duration(300)
+                  .style("opacity",1);
+                  div.text(c.properties.name+": "+(medals_by_country[c.id]?medals_by_country[c.id]:0))
+                  .style("left",(d3.event.pageX)+"px")
+                  .style("top",(d3.event.pageY-20)+"px")
+                  .style("font-size","15px");
+                  
+              }
+              
+              
+              } //end of display_total_medals
+                
+                    
+                    
+                //function to show the animation by year
+             
+             function update(year){
+                 
+                 var countries=[];
+                 
+             var filtered={}; 
+             var country_list=[];
+            
+             for(var i in medals_by_country_year[year]){
+                   
+                   var country=i;
+                   filtered[country]=medals_by_country_year[year][i];
+                 country_list.push(country);
+                
+               }  
+                 
+              var color_domain_yearly = [1, 5,10, 20, 50, 80, 100, 200,400];
+                 
+          //show number of  yearly medals through color   
+     var color_yearly = d3.scale.threshold()
+  .domain(color_domain_yearly)
+ .range(["#f7fcf5","#e5f5e0","#c7e9c0","#a1d99b","#74c476","#41ab5d","#238b45","#006d2c","#00441b"]); 
+                 
+
+               d3.select('h2')
+                 .text("Summer Olympic "+year+": Winner Country number is "+Object.keys(medals_by_country_year[year]).length);
+                 
+                var countries=svg.selectAll('path')
+                                .data(country_list);
+                 
+  svg.selectAll("pathNew").
+                  data(geo_data.features).enter()
+                    .append('path').attr("d", path)
+              .on("mouseover",mouseOver)
+              .on("mouseout",function(){
+                  
+                  
+                  d3.select(this)
+                  .transition().duration(300)
+                  .style("opacity",0.8);
+                  div.transition().duration(300)
+                  .style("opacity",0);
+              })
+                    .transition().duration(500).style('fill', function(d) {
+         // The country code in the JSON
+        var code = d.id;
+                      
+
+        //if the code exists
+        if ( typeof medals_by_country_year[year][code] !== 'undefined') {
+            return color_yearly(medals_by_country_year[year][code]);
+
+        } else {
+            return "#969696";
+        }
+    })
+      .style('stroke', '#525252')
+      .style('stroke-width', 0.8);
+              
+               //interaction  for number of yearly medals 
+                 
+              function mouseOver(c){
+                  
+                
+                  div.transition()
+                  .duration(300)
+                  .style("opacity",1);
+                  div.text(c.properties.name+": "+(medals_by_country_year[year][c.id]?medals_by_country_year[year][c.id]:0))
+                  .style("left",(d3.event.pageX)+"px")
+                  .style("top",(d3.event.pageY-20)+"px")
+                  .style("font-size","15px");
+                  
+              };
+                 
+                                 
+             }//end of update(year)    
+                    
+                    
+              var years=[];
+                    
+              //save the list of years
+              for(var key in medals_by_country_year){
+                  
+                  if(medals_by_country_year[key]){
+                      years.push(key);
+                      
+                  }
+              }       
+         var year_index=0;
+              
+              //set interval for animation
+         var year_interval=setInterval(function(){
+             
+             if(year_index>=years.length){
+                 
+                 
+                 clearInterval(year_interval);
+                 
+                 
+                 //h2 after animation
+                 d3.select('h2')
+                 .text("In Total, Winner Country number is "+Object.keys(medals_by_country).length+".  Click Each Country for Total Number of Medals.");
+                 display_total_medals();           
+                 //adding buttons to display annual medal info for countries
+                 var buttons=d3.select("body").append("div")
+                 .attr("class","years_buttons")
+                 .selectAll("div")
+                 .data(years)
+                 .enter()
+                 .append("div")
+                 .text(function(d){return d;});
+                
+                 //adding movement for buttons
+                 buttons.on("click",function(d){
+                          d3.select(".years_buttons")
+                          .selectAll("div")
+                          .transition()
+                          .duration(500)
+                          .style("background","rgb(251, 201, 127)")
+                          .style("color","#1d33c2");
+                          
+                          d3.select(this)
+                          .transition()
+                          .duration(500)
+                          .style("background","lightBlue")
+                          .style("color",'#C21D1D');
+                          update(d);
+                      })
+                 
+             }
+             
+             //animation before year 2008
+             if(year_index<years.length)
+             {console.log(years[year_index]);
+          
+             update(years[year_index]);
+             year_index++;
+             
+             }
+                                
+             },3000);
+                    
+                }//end of inner csv function
+                      )  
+                                       
+              
+      }; //end of plot_points
+          
+          
+          d3.json("new_medal_countries.json", plot_points);
+          
+      }//end of draw
+      
+      </script>
+  </head>
+<body>
+  <script type="text/javascript">
+  /*
+    Use D3 to load the GeoJSON file
+    */
+    
+d3.json("world_countries.json", draw);
+  </script>
+</body>
+</html>

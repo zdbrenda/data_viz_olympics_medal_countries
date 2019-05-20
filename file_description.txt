@@ -1,0 +1,22 @@
+file description
+
+readme.md
+
+p6.html  (html file for data cleaning in ipython notebook)
+
+p6.ipynb  (ipython notebook file for data cleaning of all_medalists.csv)
+
+P6_new.pdf  (pdf file for showing findings)
+
+all_medalists.csv  (csv file where information of all medalist who won medals in summer Olympics from 1896 to 2008)
+
+copy_index_final.html  (final revised html file where the Javascript/D3.js code for data visualization is contained)
+
+index_first_version.html (first html file where the Javascript/D3.js code for data visualization is contained)
+
+world_countries.json (json file for map plot of the world map)
+
+
+new_medal_countries.json  json file containing total number of medals
+
+new_medals_by_country_year.json json file containing annual number of medals
